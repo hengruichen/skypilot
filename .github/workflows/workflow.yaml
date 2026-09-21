@@ -1,22 +1,17 @@
 name: format
 
-on:
-  # Trigger the workflow on push or pull request,
-  # but only for the main branch
-  push:
-    branches:
-      - master
-      - 'releases/**'
-  pull_request:
-    branches:
-      - master
-      - 'releases/**'
+on: push
 jobs:
   format:
     runs-on: ubuntu-latest
+    services:
+      pypi_wayback:
+        image: ghcr.io/waleko/pypi-wayback
+        ports:
+        - 8629:8080
     strategy:
       matrix:
-        python-version: ["3.8"]
+        python-version: ['3.8']
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
@@ -54,3 +49,7 @@ jobs:
             --sg 'sky/skylet/providers/gcp/**' \
             --sg 'sky/skylet/providers/azure/**' \
             --sg 'sky/skylet/providers/ibm/**'
+
+env:
+  PIP_INDEX_URL: http://localhost:8629/2023-11-07
+  UV_INDEX_URL: http://localhost:8629/2023-11-07
