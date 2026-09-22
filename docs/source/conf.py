@@ -51,7 +51,7 @@ templates_path = ['_templates']
 main_doc = 'index'
 
 autosummary_generate = True
-napolean_use_rtype = False
+napoleon_use_rtype = False
 
 # -- Options for autodoc
 
@@ -105,3 +105,4 @@ html_favicon = '_static/favicon.ico'
 html_static_path = ['_static']
 html_js_files = ['custom.js']
 html_css_files = ['custom.css']
+
