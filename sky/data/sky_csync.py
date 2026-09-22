@@ -141,116 +141,9 @@ def get_upload_cmd(storetype: str, source: str, destination: str,
                    no_follow_symlinks: bool) -> str:
     """Builds sync command given storetype"""
 
-    if storetype == 's3':
-        # aws s3 sync does not support options to set number of threads
-        # so we need a separate command for configuration
-        thread_configure_cmd = (
-            'aws configure set default.s3.max_concurrent_requests '
-            '{num_threads}')
-        user_configured_thread_cmd = build_command(
-            thread_configure_cmd.format(num_threads=num_threads))
-
-        # Construct the main sync command
-        base_sync_cmd = ['aws', 's3', 'sync', source, f's3://{destination}']
-        if delete:
-            base_sync_cmd.append('--delete')
-        if no_follow_symlinks:
-            base_sync_cmd.append('--no-follow-symlinks')
-        main_sync_cmd = build_command(*base_sync_cmd)
-
-        # Reset the number of threads back to its default value after the sync
-        reset_thread_cmd = build_command(
-            thread_configure_cmd.format(num_threads=_DEFAULT_S3_NUM_THREAD))
-
-        full_cmd = ' '.join(
-            [user_configured_thread_cmd, main_sync_cmd, reset_thread_cmd])
-
-    elif storetype == 'gcs':
-        base_sync_cmd = [
-            'gsutil', '-m', f'-o "GSUtil:parallel_thread_count={num_threads}"',
-            'rsync', '-r'
-        ]
-        # Conditionally add flags based on the function arguments
-        if delete:
-            base_sync_cmd.append('-d')
-        if no_follow_symlinks:
-            base_sync_cmd.append('-e')
-
-        base_sync_cmd.extend([source, f'gs://{destination}'])
-        full_cmd = build_command(*base_sync_cmd)
-    else:
-        raise ValueError(f'Unsupported store type: {storetype}')
-
-    return full_cmd
-
-
-def run_sync(source: str, storetype: str, destination: str, num_threads: int,
-             interval_seconds: int, delete: bool, no_follow_symlinks: bool,
-             csync_pid: int):
-    """Runs the sync command from source to storetype bucket"""
-    # TODO(Doyoung): add enum type class to handle storetypes
-    storetype = storetype.lower()
-    sync_cmd = get_upload_cmd(storetype, source, destination, num_threads,
-                              delete, no_follow_symlinks)
-
-    source_to_bucket = (f'{source!r} to {destination!r} '
-                        f'at {storetype!r}')
-    # interval_seconds/2 is heuristically determined
-    # as initial backoff
-    backoff = common_utils.Backoff(int(interval_seconds / 2))
-    for i in range(_MAX_SYNC_RETRIES):
-        try:
-            with subprocess.Popen(sync_cmd, start_new_session=True,
-                                  shell=True) as proc:
-                _set_running_csync_sync_pid(csync_pid, proc.pid)
-                proc.wait()
-                _set_running_csync_sync_pid(csync_pid, -1)
-        except subprocess.CalledProcessError:
-            # reset sync pid as the sync process is terminated
-            _set_running_csync_sync_pid(csync_pid, -1)
-            wait_time = backoff.current_backoff()
-            logger.warning('Encountered an error while syncing '
-                           f'{source_to_bucket}. Retrying sync '
-                           f'in {wait_time}s. {_MAX_SYNC_RETRIES-i-1} more '
-                           'reattempts remaining. Check the log file '
-                           'in ~/.sky/ for more details.')
-            time.sleep(wait_time)
-        else:
-            # successfully completed sync process
-            return
-    raise RuntimeError(f'Failed to sync {source_to_bucket} after '
-                       f'{_MAX_SYNC_RETRIES} number of retries. Check '
-                       'the log file in ~/.sky/ for more'
-                       'details') from None
-
-
-@main.command()
-@click.argument('source', required=True, type=str)
-@click.argument('storetype', required=True, type=str)
-@click.argument('destination', required=True, type=str)
-@click.option('--num-threads', required=False, default=10, type=int, help='')
-@click.option('--interval-seconds',
-              required=False,
-              default=CSYNC_DEFAULT_INTERVAL_SECONDS,
-              type=int,
-              help='')
-@click.option('--delete',
-              required=False,
-              default=False,
-              type=bool,
-              is_flag=True,
-              help='')
-@click.option('--no-follow-symlinks',
-              required=False,
-              default=False,
-              type=bool,
-              is_flag=True,
-              help='')
-def csync(source: str, storetype: str, destination: str, num_threads: int,
-          interval_seconds: int, delete: bool, no_follow_symlinks: bool):
-    """Runs daemon to sync the source to the bucket every INTERVAL seconds.
-
-    Creates an entry of pid of the sync process in local database while sync
+    if storetype
+# ... [truncated] ...
+ync
     command is runninng and removes it when completed.
 
     Args:
@@ -349,3 +242,4 @@ def _terminate(paths: List[str], all: bool = False) -> None:  # pylint: disable=
 
 if __name__ == '__main__':
     main()
+
